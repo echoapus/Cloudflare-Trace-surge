@@ -1,0 +1,8 @@
+#!name=Cloudflare Trace
+#!desc=顯示 Cloudflare CDN 連線資訊
+
+[Panel]
+cloudflare-trace = script-name=cloudflare-trace,update-interval=600
+
+[Script]
+cloudflare-trace = type=generic,timeout=30,script-path=https://your-domain.com/cloudflare-trace.js
