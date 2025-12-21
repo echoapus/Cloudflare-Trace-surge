@@ -62,6 +62,19 @@ function parseCloudflareTrace(traceData) {
     return result;
 }
 
+// 格式化 WARP 狀態
+function formatWarpStatus(warpValue) {
+    if (warpValue === 'off') {
+        return 'WARP: ✗ 未啟用';
+    } else if (warpValue === 'plus') {
+        return 'WARP: ✓ Plus';
+    } else if (warpValue === 'on') {
+        return 'WARP: ✓ 已啟用';
+    } else {
+        return `WARP: ${warpValue}`;
+    }
+}
+
 /**
  * 從 Cloudflare 取得網路資訊
  */
@@ -88,7 +101,7 @@ function getCloudflareInfo(retryTimes = 5, retryInterval = 1000) {
             `HTTP: ${trace.http}`,
             `TLS: ${trace.tls}`,
             `SNI: ${trace.sni}`,
-            trace.warp === 'on' ? 'WARP: ✓ 已啟用' : 'WARP: ✗ 未啟用',
+            formatWarpStatus(trace.warp),
             `查詢時間: ${timestamp}`
         ].join('\n');
 
