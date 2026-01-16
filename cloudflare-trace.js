@@ -1,7 +1,10 @@
 /*
  * Cloudflare Trace 資訊面板
  * 僅顯示 Cloudflare CDN 資訊
+ * Updates: 修復了 Timeout 計時器未清除的問題
  */
+
+const API_URL = 'https://cloudflare.com/cdn-cgi/trace';
 
 class httpMethod {
     static _httpRequestCallback(resolve, reject, error, response, data) {
@@ -77,13 +80,19 @@ function formatWarpStatus(warpValue) {
 
 /**
  * 從 Cloudflare 取得網路資訊
+ * @param {number} retryTimes 重試次數
+ * @param {number} retryInterval 重試間隔
+ * @param {number|null} timerId 用於清除的全域計時器 ID
  */
-function getCloudflareInfo(retryTimes = 5, retryInterval = 1000) {
-    httpMethod.get('https://cloudflare.com/cdn-cgi/trace').then(response => {
+function getCloudflareInfo(retryTimes = 5, retryInterval = 1000, timerId = null) {
+    httpMethod.get(API_URL).then(response => {
         if (Number(response.status) > 300) {
             throw new Error(`Request error with http status code: ${response.status}\n${response.data}`);
         }
         
+        // 成功獲取資料，清除超時倒數計時器
+        if (timerId) clearTimeout(timerId);
+
         const trace = parseCloudflareTrace(response.data);
         
         // 格式化時間戳記
@@ -116,9 +125,11 @@ function getCloudflareInfo(retryTimes = 5, retryInterval = 1000) {
         if (retryTimes > 0) {
             logger.error(error);
             logger.log(`Retry after ${retryInterval}ms`);
-            setTimeout(() => getCloudflareInfo(--retryTimes, retryInterval), retryInterval);
+            // 遞迴時繼續傳遞 timerId，確保最後成功時能清除
+            setTimeout(() => getCloudflareInfo(--retryTimes, retryInterval, timerId), retryInterval);
         } else {
             logger.error(error);
+            if (timerId) clearTimeout(timerId); // 即使失敗也要清除計時器，避免重複報錯
             $done({
                 title: 'Cloudflare Trace',
                 content: '無法取得 Cloudflare Trace 資訊\n請檢查網路連線後重試',
@@ -138,7 +149,8 @@ function getCloudflareInfo(retryTimes = 5, retryInterval = 1000) {
     const surgeMaxTimeout = 29500;
     const scriptTimeout = retryTimes * 5000 + retryTimes * retryInterval;
     
-    setTimeout(() => {
+    // 將 setTimeout 的 ID 存下來
+    const timerId = setTimeout(() => {
         logger.log("Script timeout");
         $done({
             title: "請求逾時",
@@ -149,5 +161,6 @@ function getCloudflareInfo(retryTimes = 5, retryInterval = 1000) {
     }, scriptTimeout > surgeMaxTimeout ? surgeMaxTimeout : scriptTimeout);
 
     logger.log("Script start");
-    getCloudflareInfo(retryTimes, retryInterval);
+    // 將 timerId 傳入主函數
+    getCloudflareInfo(retryTimes, retryInterval, timerId);
 })();
