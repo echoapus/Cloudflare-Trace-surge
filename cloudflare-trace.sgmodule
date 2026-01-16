@@ -5,4 +5,4 @@
 cloudflare-trace = script-name=cloudflare-trace,update-interval=600
 
 [Script]
-cloudflare-trace = type=generic,timeout=30,script-path=https://raw.githubusercontent.com/echoapus/Cloudflare-Trace-surge/refs/heads/main/cloudflare-trace.js
+cloudflare-trace = type=generic,timeout=30,script-path=https://raw.githubusercontent.com/echoapus/Cloudflare-Trace-surge/main/cloudflare-trace.js
